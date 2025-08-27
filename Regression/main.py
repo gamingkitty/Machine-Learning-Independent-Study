@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt # numpy and matplotlib for visualizations
+from functools import lru_cache # cache function results to improve recursive runtime
 
 
 def sub(arr1, arr2):
@@ -67,12 +68,8 @@ def poly_regress(x_data, y_data, degree=1):
 
         orthogonal_base = sub(xs[i], proj_sum)
         cur_slope = proj_mult(y_data, orthogonal_base)
-        # Currently very inefficient way to get xhat mults through recursion for simplicity
-        # recomputes a lot of stuff and can be sped up
-        # xhat mults are essentially how an xhat of a given degree affects the slope of the
-        # actual xs, so like if you give deg 2, then itl give you a matrix of [1, ?1, ?2] showing
-        # that multiplying x^2hat by a constant affects the slope of x^2 by 1*constant, x by ?1*constant,
-        # and x^0/b by ?2*constant
+        # get the scale of effect of the current slope on each degree less than or equal to deg
+        @lru_cache(maxsize=None)
         def get_xhat_mults(deg):
             if deg == 0:
                 return [1]
