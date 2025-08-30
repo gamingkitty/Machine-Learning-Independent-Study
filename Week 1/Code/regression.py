@@ -1,82 +1,48 @@
 import numpy as np
-import matplotlib.pyplot as plt # numpy and matplotlib for visualizations
-from functools import lru_cache # cache function results to improve recursive runtime
-
-
-def sub(arr1, arr2):
-    return [arr1[i] - arr2[i] for i in range(len(arr1))]
-
-
-def add(arr1, arr2):
-    return [arr1[i] + arr2[i] for i in range(len(arr1))]
-
-
-def mult(arr1, arr2):
-    return [arr1[i] * arr2[i] for i in range(len(arr1))]
-
-
-def dot(arr1, arr2):
-    return sum(arr1[i] * arr2[i] for i in range(len(arr1)))
-
-
-def mult_scalar(arr, scalar):
-    return [scalar * data for data in arr]
-
-
-def project(point, base):
-    return mult_scalar(base, proj_mult(point, base))
-
-
-def proj_mult(point, base):
-    return dot(point, base) / dot(base, base)
-
-
-def ones(n):
-    return [1 for _ in range(n)]
-
-
-def zeros(n):
-    return [0 for _ in range(n)]
+import matplotlib.pyplot as plt  # numpy and matplotlib for visualizations
+from functools import lru_cache  # cache function results to improve recursive runtime
+import operations as ops
 
 
 def linear_regress(x_data, y_data):
     n = len(x_data)
     # find orthogonal bases of span(x_data, 1)
-    orthogonal_base_1 = ones(n)
-    proj = project(x_data, orthogonal_base_1)
-    orthogonal_base_2 = sub(x_data, proj)
+    orthogonal_base_1 = ops.ones(n)
+    proj = ops.project(x_data, orthogonal_base_1)
+    orthogonal_base_2 = ops.sub(x_data, proj)
 
     # find projection of y_data onto span(x_data, 1) to find point that minimizes distance/error
     # but find it in terms of orthogonal_base_2 so we can find it in terms of a multiplier and an
     # intercept.
-    slope = proj_mult(y_data, orthogonal_base_2)
-    intercept = proj_mult(y_data, orthogonal_base_1) - proj[0] * slope # projected onto 1, always the same for every axis
+    slope = ops.proj_mult(y_data, orthogonal_base_2)
+    intercept = ops.proj_mult(y_data, orthogonal_base_1) - proj[0] * slope  # projected onto 1, always the same for every axis
     return slope, intercept
 
 
 def poly_regress(x_data, y_data, degree=1):
     n = len(x_data)
-    xs = [[(x ** (i + 1)) for x in x_data] for i in range(degree)]
-    orthogonal_1 = ones(n)
+    xs = [ops.power(x_data, i + 1) for i in range(degree)]
+    orthogonal_1 = ops.ones(n)
     orthogonal_bases = [orthogonal_1]
-    slopes = zeros(degree + 1)
-    slopes[0] = proj_mult(y_data, orthogonal_1)
+    slopes = ops.zeros(degree + 1)
+    slopes[0] = ops.proj_mult(y_data, orthogonal_1)
     for i in range(len(xs)):
-        proj_sum = zeros(n)
+        proj_sum = ops.zeros(n)
         for base in orthogonal_bases:
-            proj_sum = add(proj_sum, project(xs[i], base))
+            proj_sum = ops.add(proj_sum, ops.project(xs[i], base))
 
-        orthogonal_base = sub(xs[i], proj_sum)
-        cur_slope = proj_mult(y_data, orthogonal_base)
+        orthogonal_base = ops.sub(xs[i], proj_sum)
+        cur_slope = ops.proj_mult(y_data, orthogonal_base)
+
         # get the scale of effect of the current slope on each degree less than or equal to deg
         @lru_cache(maxsize=None)
         def get_xhat_mults(deg):
             if deg == 0:
                 return [1]
-            mults = zeros(deg + 1)
+            mults = ops.zeros(deg + 1)
             mults[-1] = 1
             for j in range(deg):
-                multiplier = -proj_mult(xs[deg - 1], orthogonal_bases[j])
+                multiplier = -ops.proj_mult(xs[deg - 1], orthogonal_bases[j])
                 next_xhat_mult = get_xhat_mults(j)
                 for k in range(len(next_xhat_mult)):
                     mults[k] += multiplier * next_xhat_mult[k]
@@ -109,10 +75,10 @@ class PointEditor:
         self.drag_i = None
         self.drag_anchor = None
 
-        self.cid_press   = self.fig.canvas.mpl_connect('button_press_event', self.on_press)
-        self.cid_motion  = self.fig.canvas.mpl_connect('motion_notify_event', self.on_motion)
+        self.cid_press = self.fig.canvas.mpl_connect('button_press_event', self.on_press)
+        self.cid_motion = self.fig.canvas.mpl_connect('motion_notify_event', self.on_motion)
         self.cid_release = self.fig.canvas.mpl_connect('button_release_event', self.on_release)
-        self.cid_key     = self.fig.canvas.mpl_connect('key_press_event', self.on_key)
+        self.cid_key = self.fig.canvas.mpl_connect('key_press_event', self.on_key)
 
         self.update_fit()
         self.ax.set_title("Drag points. Press 'a' to add a point at the cursor.")
@@ -120,7 +86,7 @@ class PointEditor:
 
     def update_fit(self):
         if len(self.x) >= 2:
-            slopes, b = poly_regress(self.x, self.y, 3)
+            slopes, b = poly_regress(self.x, self.y, 4)
 
             xmin, xmax = min(self.x), max(self.x)
 

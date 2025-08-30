@@ -1,0 +1,8 @@
+This chapter covers the applications of finding projections and orthogonal bases.
+
+By the end of the chapter you should know the following:
+
+1. How to calculate the orthogonal bases of a subspace in R^n
+2. How to calculate a projection onto a subspace
+3. How to find a line of best fit given n data points
+4. Find the distance between two lines
