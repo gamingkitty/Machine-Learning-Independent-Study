@@ -20,12 +20,19 @@ def linear_regress(x_data, y_data):
 
 
 def poly_regress(x_data, y_data, degree=1):
-    n = len(x_data)
-    xs = [ops.power(x_data, i + 1) for i in range(degree)]
-    orthogonal_1 = ops.ones(n)
+    xs = [ops.power(x_data, i) for i in range(degree + 1)]
+    return function_regress(xs, y_data)
+
+
+def function_regress(xs, y_data):
+    n = len(y_data)
+
+    orthogonal_1 = xs[0]
     orthogonal_bases = [orthogonal_1]
-    slopes = ops.zeros(degree + 1)
+    slopes = ops.zeros(len(xs))
     slopes[0] = ops.proj_mult(y_data, orthogonal_1)
+
+    xs = xs[1:]
     for i in range(len(xs)):
         proj_sum = ops.zeros(n)
         for base in orthogonal_bases:
@@ -37,8 +44,6 @@ def poly_regress(x_data, y_data, degree=1):
         # get the scale of effect of the current slope on each degree less than or equal to deg
         @lru_cache(maxsize=None)
         def get_xhat_mults(deg):
-            if deg == 0:
-                return [1]
             mults = ops.zeros(deg + 1)
             mults[-1] = 1
             for j in range(deg):
@@ -54,7 +59,7 @@ def poly_regress(x_data, y_data, degree=1):
 
         orthogonal_bases.append(orthogonal_base)
 
-    return slopes[1:], slopes[0]
+    return slopes
 
 
 class PointEditor:
@@ -86,7 +91,7 @@ class PointEditor:
 
     def update_fit(self):
         if len(self.x) >= 2:
-            slopes, b = poly_regress(self.x, self.y, 4)
+            regress = function_regress([function(self.x) for function in functions], self.y)
 
             xmin, xmax = min(self.x), max(self.x)
 
@@ -95,9 +100,9 @@ class PointEditor:
                 xmax += 1.0
             xs = np.linspace(xmin, xmax, 200)
 
-            ys = np.full_like(xs, b, dtype=float)
-            for i, s in enumerate(slopes):
-                ys += s * (xs ** (i + 1))
+            ys = np.full_like(xs, 0, dtype=float)
+            for i in range(len(regress)):
+                ys += ops.mult_scalar(functions[i](xs), regress[i])
 
             self.fit_line.set_data(xs, ys)
         else:
@@ -159,14 +164,29 @@ class PointEditor:
             self.add_point(event.xdata, event.ydata)
 
 
+def intercept(x_data):
+    return ops.ones(len(x_data))
+
+
+def linear(x_data):
+    return x_data
+
+
+def sqrt(x_data):
+    return ops.power(x_data, 1/2)
+
+
+functions = [intercept, linear, ops.ln, sqrt]
+
+
 if __name__ == "__main__":
     fig, ax = plt.subplots()
-    ax.set_xlim(-20, 20)
-    ax.set_ylim(-20, 20)
+    ax.set_xlim(0, 20)
+    ax.set_ylim(0, 20)
     ax.grid(True, alpha=0.3)
 
-    x0 = [-2, -1, 0, 1, 2]
-    y0 = [-4, -2, 0, 2, 4]
+    x0 = [1, 2, 3, 4, 5]
+    y0 = [1, 2, 3, 4, 5]
 
     editor = PointEditor(ax, x0, y0)
     plt.show()

@@ -1,0 +1,7 @@
+This chapter mostly introduces the concept of multivariable functions and how to visualize them.
+
+By the end of the chapter you should know:
+
+1. What a multivariable function is
+2. What (f ∘ g)(x) means for multivariable functions
+3. What a graph and a contour plot of a multivariable function is

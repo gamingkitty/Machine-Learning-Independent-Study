@@ -1,8 +1,10 @@
-1. Write code that plots the linear regression for a set of data points.
-2. Use what you learned to derive code for an nth degree polynomial regression for a set of data points (in the form m_n * x_n + m_n-1 * x_n-1 + ... + m_1 * x + m_0 * b)
-(Optional: make the points draggable so you can see the regression update in real time!)
+1. Write code that plots the linear regression for a set of data points. Make the points draggable, so you can see the regression update in real time.
+2. Write code to find the minimum distance between two lines in R^n.
 
-3. Write code to find the minimum distance between two lines in R^n.
+Optional but recommended:
+1. Use what you learned to derive code for an nth degree polynomial regression for a set of data points (in the form m_n * x^n + m_n-1 * x^n-1 + ... + m_1 * x + b)
+2. Turn the polynomial regression into a regression for any functions (m_n * f_n(x) + m_n-1 * f_n-1(x) + ... + m_1 * f_1(x) + m_0 * f_0(x))
+3. Try using that regression for any function to make a regression line in R^n rather than just R^2
 
 
 

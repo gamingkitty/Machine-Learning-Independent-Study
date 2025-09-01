@@ -13,12 +13,20 @@ def mult(arr1, arr2):
     return [arr1[i] * arr2[i] for i in range(len(arr1))]
 
 
+def divide(arr1, arr2):
+    return [arr1[i] / arr2[i] for i in range(len(arr1))]
+
+
 def dot(arr1, arr2):
     return sum(arr1[i] * arr2[i] for i in range(len(arr1)))
 
 
 def mult_scalar(arr, scalar):
     return [scalar * data for data in arr]
+
+
+def ln(arr):
+    return [math.log(num) for num in arr]
 
 
 def project(point, base):
