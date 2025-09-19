@@ -29,6 +29,10 @@ def ln(arr):
     return [math.log(num) for num in arr]
 
 
+def exp(arr):
+    return [math.exp(num) for num in arr]
+
+
 def project(point, base):
     return mult_scalar(base, proj_mult(point, base))
 

@@ -1,65 +1,51 @@
+import math
+import random
+import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib.pyplot as plt  # numpy and matplotlib for visualizations
-from functools import lru_cache  # cache function results to improve recursive runtime
-import operations as ops
 
+# Do gradient descent to find regression for Asin(Bx + C) + D
 
-def linear_regress(x_data, y_data):
+def gradient_descent(x_data, y_data):
     n = len(x_data)
-    # find orthogonal bases of span(x_data, 1)
-    orthogonal_base_1 = ops.ones(n)
-    proj = ops.project(x_data, orthogonal_base_1)
-    orthogonal_base_2 = ops.sub(x_data, proj)
 
-    # find projection of y_data onto span(x_data, 1) to find point that minimizes distance/error
-    # but find it in terms of orthogonal_base_2 so we can find it in terms of a multiplier and an
-    # intercept.
-    slope = ops.proj_mult(y_data, orthogonal_base_2)
-    intercept = ops.proj_mult(y_data, orthogonal_base_1) - proj[0] * slope  # projected onto 1, always the same for every axis
-    return slope, intercept
+    lowest_loss = 99999
+    la, lb, lc, ld = 0, 0, 0, 0
+    for _ in range(40):
+        a = random.random() - 0.5
+        b = random.random() - 0.5
+        c = random.random() - 0.5
+        d = (sum(y_data) / n) + random.random() - 0.5
 
+        learning_rate = 0.004
 
-def poly_regress(x_data, y_data, degree=1):
-    xs = [ops.power(x_data, i) for i in range(degree + 1)]
-    return function_regress(xs, y_data)
+        # C = sum((y - (Asin(Bx + C) + D))^2)
 
+        final_loss = 0
 
-def function_regress(xs, y_data):
-    n = len(y_data)
+        for _ in range(1000):
+            sines = [math.sin((b * x) + c) for x in x_data]
+            cosines = [a * math.cos((b * x) + c) for x in x_data]
 
-    orthogonal_1 = xs[0]
-    orthogonal_bases = [orthogonal_1]
-    slopes = ops.zeros(len(xs))
-    slopes[0] = ops.proj_mult(y_data, orthogonal_1)
+            loss = sum([(y_data[i] - (a * sines[i] + d)) ** 2 for i in range(n)])
+            final_loss = loss
 
-    xs = xs[1:]
-    for i in range(len(xs)):
-        proj_sum = ops.zeros(n)
-        for base in orthogonal_bases:
-            proj_sum = ops.add(proj_sum, ops.project(xs[i], base))
+            losses = [(y_data[i] - (a * sines[i] + d)) for i in range(n)]
 
-        orthogonal_base = ops.sub(xs[i], proj_sum)
-        cur_slope = ops.proj_mult(y_data, orthogonal_base)
+            dc_da = -2 * sum([losses[i] * sines[i] for i in range(n)])
+            dc_db = -2 * sum([losses[i] * cosines[i] * x_data[i] for i in range(n)])
+            dc_dc = -2 * sum([losses[i] * cosines[i] for i in range(n)])
+            dc_dd = -2 * sum([losses[i] for i in range(n)])
 
-        # get the scale of effect of the current slope on each degree less than or equal to deg
-        @lru_cache(maxsize=None)
-        def get_xhat_mults(deg):
-            mults = ops.zeros(deg + 1)
-            mults[-1] = 1
-            for j in range(deg):
-                multiplier = -ops.proj_mult(xs[deg - 1], orthogonal_bases[j])
-                next_xhat_mult = get_xhat_mults(j)
-                for k in range(len(next_xhat_mult)):
-                    mults[k] += multiplier * next_xhat_mult[k]
-            return mults
+            a -= learning_rate * dc_da
+            b -= learning_rate * dc_db
+            c -= learning_rate * dc_dc
+            d -= learning_rate * dc_dd
 
-        xhat_mults = get_xhat_mults(i + 1)
-        for j in range(len(xhat_mults)):
-            slopes[j] += cur_slope * xhat_mults[j]
+        if final_loss < lowest_loss:
+            la, lb, lc, ld = a, b, c, d
+            lowest_loss = final_loss
 
-        orthogonal_bases.append(orthogonal_base)
-
-    return slopes
+    return la, lb, lc, ld
 
 
 class PointEditor:
@@ -91,8 +77,7 @@ class PointEditor:
 
     def update_fit(self):
         if len(self.x) >= 2:
-            regress = function_regress([function(self.x) for function in functions], self.y)
-
+            a, b, c, d = gradient_descent(self.x, self.y)
             xmin, xmax = min(self.x), max(self.x)
 
             if xmin == xmax:
@@ -101,8 +86,7 @@ class PointEditor:
             xs = np.linspace(xmin, xmax, 200)
 
             ys = np.full_like(xs, 0, dtype=float)
-            for i in range(len(regress)):
-                ys += ops.mult_scalar(functions[i](xs), regress[i])
+            ys += [a * math.sin((b * x) + c) + d for x in xs]
 
             self.fit_line.set_data(xs, ys)
         else:
@@ -164,41 +148,16 @@ class PointEditor:
             self.add_point(event.xdata, event.ydata)
 
 
-def intercept(x_data):
-    return ops.ones(len(x_data))
-
-
-def linear(x_data):
-    return x_data
-
-
-def sqrt(x_data):
-    return ops.power(x_data, 1/2)
-
-
-def sqr(x_data):
-    return ops.power(x_data, 2)
-
-
-def cbrt(x_data):
-    return ops.power(x_data, 1/3)
-
-
-def cube(x_data):
-    return ops.power(x_data, 3)
-
-
-functions = [intercept, linear, sqr, cube]
-
-
 if __name__ == "__main__":
     fig, ax = plt.subplots()
-    ax.set_xlim(0, 20)
-    ax.set_ylim(0, 20)
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(-3, 3)
     ax.grid(True, alpha=0.3)
 
-    x0 = [1, 2, 3, 4, 5]
-    y0 = [1, 2, 3, 4, 5]
+    x_data = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+    y_data = [0, 1, 2, 1, 0, -1, -2, -1, 0]
 
-    editor = PointEditor(ax, x0, y0)
+    editor = PointEditor(ax, x_data, y_data)
     plt.show()
+
+
