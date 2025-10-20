@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import matplotlib.pyplot as plt  # numpy and matplotlib for visualizations
 from functools import lru_cache  # cache function results to improve recursive runtime
@@ -63,50 +65,153 @@ def function_regress(xs, y_data):
 
 
 class PointEditor:
-    def __init__(self, ax, x_init=None, y_init=None):
+    def __init__(
+        self,
+        ax,
+        x_init=None,
+        y_init=None,
+        *,
+        enable_drag=True,
+        title="Data & Fit",
+        xlabel="x",
+        ylabel="y",
+        coeff_precision=3,
+        r2_precision=4
+    ):
         self.ax = ax
         self.fig = ax.figure
+
+        self.enable_drag = bool(enable_drag)
+        self.coeff_precision = int(coeff_precision)
+        self.r2_precision = int(r2_precision)
+
+        self.function_names = function_names  # may be None; handled during formatting
 
         self.x = list(x_init if x_init is not None else [0, 1, 2])
         self.y = list(y_init if y_init is not None else [0, 1, 4])
 
+        # scatter points
         self.points = []
         for xi, yi in zip(self.x, self.y):
             p, = ax.plot([xi], [yi], 'o', ms=9, picker=5)
             self.points.append(p)
 
-        self.fit_line, = ax.plot([], [], '-', lw=2)
+        # fitted curve
+        self.fit_line, = ax.plot([], [], '-', lw=2, label="fit")
 
+        # info text (equation + R^2)
+        self.info_text = ax.text(
+            0.02, 0.98, "", transform=ax.transAxes, va='top', ha='left'
+        )
+
+        # titles
+        self.ax.set_title(title)
+        self.ax.set_xlabel(xlabel)
+        self.ax.set_ylabel(ylabel)
+
+        # drag state
         self.drag_i = None
         self.drag_anchor = None
 
-        self.cid_press = self.fig.canvas.mpl_connect('button_press_event', self.on_press)
+        # events
+        self.cid_press  = self.fig.canvas.mpl_connect('button_press_event', self.on_press)
         self.cid_motion = self.fig.canvas.mpl_connect('motion_notify_event', self.on_motion)
-        self.cid_release = self.fig.canvas.mpl_connect('button_release_event', self.on_release)
-        self.cid_key = self.fig.canvas.mpl_connect('key_press_event', self.on_key)
+        self.cid_release= self.fig.canvas.mpl_connect('button_release_event', self.on_release)
+        self.cid_key    = self.fig.canvas.mpl_connect('key_press_event', self.on_key)
 
+        # initial fit
         self.update_fit()
-        self.ax.set_title("Press 'a' to add a point at the cursor.")
         self.fig.canvas.draw_idle()
 
+    # ----- public knobs -----
+    def set_drag(self, enabled: bool):
+        self.enable_drag = bool(enabled)
+
+    def set_titles(self, *, title=None, xlabel=None, ylabel=None):
+        if title is not None:
+            self.ax.set_title(title)
+        if xlabel is not None:
+            self.ax.set_xlabel(xlabel)
+        if ylabel is not None:
+            self.ax.set_ylabel(ylabel)
+        self.redraw()
+
+    def set_function_names(self, names):
+        self.function_names = list(names) if names is not None else None
+        self.update_fit()
+        self.redraw()
+
+    # ----- fitting / display -----
     def update_fit(self):
         if len(self.x) >= 2:
-            regress = function_regress([function(self.x) for function in functions], self.y)
+            # Build design matrix: each row i has basis_j(x_i)
+            X = np.vstack([f(np.asarray(self.x, dtype=float)) for f in functions]).T
+            y = np.asarray(self.y, dtype=float)
 
-            xmin, xmax = min(self.x), max(self.x)
+            coeffs = function_regress([f(np.asarray(self.x, dtype=float)) for f in functions], y)
+            coeffs = np.asarray(coeffs, dtype=float)
 
+            print(coeffs)
+
+            # Smooth line
+            xmin, xmax = float(min(self.x)), float(max(self.x))
             if xmin == xmax:
                 xmin -= 1.0
                 xmax += 1.0
             xs = np.linspace(xmin, xmax, 200)
-
-            ys = np.full_like(xs, 0, dtype=float)
-            for i in range(len(regress)):
-                ys += ops.mult_scalar(functions[i](xs), regress[i])
+            ys = np.zeros_like(xs, dtype=float)
+            for i, f in enumerate(functions):
+                ys += coeffs[i] * f(xs)
 
             self.fit_line.set_data(xs, ys)
+
+            # R^2 on the *data*:
+            y_hat = X.dot(coeffs)
+            ss_res = float(np.sum((y - y_hat) ** 2))
+            ss_tot = float(np.sum((y - np.mean(y)) ** 2))
+            r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else 1.0
+
+            # Update equation + R^2 label
+            eq = self._format_equation(coeffs)
+            info = f"{eq}\nR² = {r2:.{self.r2_precision}f}"
+            self.info_text.set_text(info)
         else:
             self.fit_line.set_data([], [])
+            self.info_text.set_text("Add at least two points to fit.")
+
+    def _format_equation(self, coeffs):
+        # Build "y = a·x^2 + b·x + c" using function_names when provided.
+        # Empty name "" denotes intercept term.
+        prec = self.coeff_precision
+        names = self.function_names
+        if names is None or len(names) != len(coeffs):
+            # Best-effort auto-names: f0, f1, ..., with last as intercept if constant function detected
+            names = [f"f{i}" for i in range(len(coeffs))]
+
+        terms = []
+        for c, nm in zip(coeffs, names):
+            c_str = f"{c:.{prec}f}"
+            if nm == "" or nm is None:
+                term = c_str
+            else:
+                # coefficient * basis name; handle ± in join later
+                # Use "·" for multiplication only when |c| not ~1 or name looks like constant-free
+                if np.isclose(abs(float(c_str)), 1.0, atol=10**(-prec)):
+                    # show just sign if magnitude ~1 (e.g., "-x", "+x^2")
+                    sign = "-" if float(c_str) < 0 else "+"
+                    # remove "1"
+                    term = f"{sign} {nm}"
+                else:
+                    sign = "-" if float(c_str) < 0 else "+"
+                    term = f"{sign} {abs(float(c_str)):.{prec}f}·{nm}"
+            terms.append(term)
+
+        if not terms:
+            return "y = 0"
+        first = terms[0]
+        if first.startswith("+ "):
+            terms[0] = first[2:]
+        return "y = " + " ".join(terms)
 
     def redraw(self):
         self.fig.canvas.draw_idle()
@@ -127,6 +232,8 @@ class PointEditor:
         return None
 
     def on_press(self, event):
+        if not self.enable_drag:
+            return
         if event.inaxes != self.ax or event.button != 1:
             return
         i = self.pick_point_index(event)
@@ -137,6 +244,8 @@ class PointEditor:
         self.drag_anchor = (x0, y0, event.xdata, event.ydata)
 
     def on_motion(self, event):
+        if not self.enable_drag:
+            return
         if self.drag_i is None or event.inaxes != self.ax or event.xdata is None:
             return
         x0, y0, xpress, ypress = self.drag_anchor
@@ -152,6 +261,8 @@ class PointEditor:
         self.fig.canvas.draw_idle()
 
     def on_release(self, event):
+        if not self.enable_drag:
+            return
         if self.drag_i is None:
             return
         self.drag_i = None
@@ -160,6 +271,7 @@ class PointEditor:
         self.redraw()
 
     def on_key(self, event):
+        # keep 'a' to add point at cursor
         if event.key == 'a' and event.inaxes == self.ax and event.xdata is not None:
             self.add_point(event.xdata, event.ydata)
 
@@ -187,18 +299,26 @@ def cbrt(x_data):
 def cube(x_data):
     return ops.power(x_data, 3)
 
+def sin(x_data):
+    return [math.sin(x) for x in x_data]
 
-functions = [intercept, linear, sqr, cube]
+
+functions = [linear]
+function_names = ["x"]
 
 
 if __name__ == "__main__":
     fig, ax = plt.subplots()
-    ax.set_xlim(0, 20)
-    ax.set_ylim(0, 20)
+    ax.set_xlim(0, 0.5)
+    ax.set_ylim(0, 1)
     ax.grid(True, alpha=0.3)
 
-    x0 = [1, 2, 3, 4, 5]
-    y0 = [1, 2, 3, 4, 5]
+    x0 = [0.08, 0.16, 0.24, 0.32, 0.4]
+    y0 = [0.17, 0.34, 0.52, 0.70, 0.86]
 
     editor = PointEditor(ax, x0, y0)
     plt.show()
+
+    print()
+
+
