@@ -141,10 +141,8 @@ class PointEditor:
         self.update_fit()
         self.redraw()
 
-    # ----- fitting / display -----
     def update_fit(self):
         if len(self.x) >= 2:
-            # Build design matrix: each row i has basis_j(x_i)
             X = np.vstack([f(np.asarray(self.x, dtype=float)) for f in functions]).T
             y = np.asarray(self.y, dtype=float)
 
@@ -303,8 +301,8 @@ def sin(x_data):
     return [math.sin(x) for x in x_data]
 
 
-functions = [linear]
-function_names = ["x"]
+functions = [linear, sin, cube, cbrt, intercept]
+function_names = ["x", "sin", "x^3", "x^(1/3)", ""]
 
 
 if __name__ == "__main__":

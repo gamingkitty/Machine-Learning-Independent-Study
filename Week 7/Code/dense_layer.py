@@ -2,7 +2,6 @@ import random
 import operations as ops
 
 
-# Default ReLU activation
 class Layer:
     def __init__(self, input_num, neuron_num, activation_function, activation_derivative, is_elementwise):
         self.input_num = input_num
@@ -33,6 +32,9 @@ class Layer:
             # Sum along columns
             d_cost_d_in = [sum(col) for col in zip(*d_out_d_in)]
         else:
+            print(len(d_a_d_z))
+            print(len(input))
+            # Something wrong here, shapes don't match
             d_cost_d_weights = [ops.mult_scalar(ops.mult(input, d_a_d_z[i]), d_cost_d_out[i]) for i in range(len(d_cost_d_out))]
 
             d_z_d_cost = [ops.dot(d_a_d_z[i], d_cost_d_out) for i in range(len(d_a_d_z))]
@@ -41,10 +43,12 @@ class Layer:
             # Sum along columns
             d_cost_d_in = [sum(col) for col in zip(*d_cost_d_in)]
 
+        print(len(d_cost_d_weights[0]))
         self.gradient = d_cost_d_weights
 
         return d_cost_d_in
 
     def apply_gradient(self, learning_rate):
         self.weights = [ops.sub(self.weights[i], ops.mult_scalar(self.gradient[i], learning_rate)) for i in range(self.neuron_num)]
+
 
