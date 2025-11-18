@@ -24,6 +24,8 @@ def dot(arr1, arr2):
 def mult_scalar(arr, scalar):
     return [scalar * data for data in arr]
 
+def max(arr):
+    return max(arr)
 
 def ln(arr):
     return [math.log(num) for num in arr]

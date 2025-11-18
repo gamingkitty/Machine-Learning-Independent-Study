@@ -23,27 +23,32 @@ class Layer:
     # If not elementwise format is:
     # [[z_1 -> a_1, z_1 -> a_2]
     #  [z_2 -> a_1, z_2 -> a_2]]
-    def backwards_pass(self, input, z_data, d_cost_d_out):
+    def backwards_pass(self, inputs, z_data, d_cost_d_out):
         d_a_d_z = self.activation_derivative(z_data)
         if self.is_elementwise:
-            d_cost_d_weights = [ops.mult_scalar(input, d_cost_d_out[i] * d_a_d_z[i]) for i in range(len(d_cost_d_out))]
+            # d_cost_d_weights = [ops.mult_scalar(input, d_cost_d_out[i] * d_a_d_z[i]) for i in range(len(d_cost_d_out))]
+            d_cost_d_weights = ops.matrix_mult(ops.transpose(ops.mult(d_a_d_z, d_cost_d_out)), inputs)
 
-            d_out_d_in = [ops.mult_scalar(self.weights[i], d_cost_d_out[i] * d_a_d_z[i]) for i in range(self.neuron_num)]
-            # Sum along columns
-            d_cost_d_in = [sum(col) for col in zip(*d_out_d_in)]
+            d_cost_d_in = ops.matrix_mult(ops.mult(d_a_d_z, d_cost_d_out), self.weights)[0]
+            # d_out_d_in = [ops.mult_scalar(self.weights[i], d_cost_d_out[i] * d_a_d_z[i]) for i in range(self.neuron_num)]
+            # # Sum along columns
+            # d_cost_d_in = [sum(col) for col in zip(*d_out_d_in)]
         else:
-            print(len(d_a_d_z))
-            print(len(input))
+            # print(len(d_a_d_z))
+            # print(len(inputs))
             # Something wrong here, shapes don't match
-            d_cost_d_weights = [ops.mult_scalar(ops.mult(input, d_a_d_z[i]), d_cost_d_out[i]) for i in range(len(d_cost_d_out))]
+            # d_cost_d_weights = [ops.mult_scalar(ops.mult(inputs, d_a_d_z[i]), d_cost_d_out[i]) for i in range(len(d_cost_d_out))]
+            d_cost_d_z = ops.matrix_mult(d_cost_d_out, d_a_d_z)
+            d_cost_d_weights = ops.matrix_mult(ops.transpose(d_cost_d_z), inputs)
 
-            d_z_d_cost = [ops.dot(d_a_d_z[i], d_cost_d_out) for i in range(len(d_a_d_z))]
+            # d_z_d_cost = [ops.dot(d_a_d_z[i], d_cost_d_out) for i in range(len(d_a_d_z))]
+            #
+            # d_cost_d_in = [ops.mult_scalar(self.weights[i], d_z_d_cost[i]) for i in range(self.neuron_num)]
+            # # Sum along columns
+            # d_cost_d_in = [sum(col) for col in zip(*d_cost_d_in)]
+            d_cost_d_in = ops.matrix_mult(d_cost_d_z, self.weights)[0]
 
-            d_cost_d_in = [ops.mult_scalar(self.weights[i], d_z_d_cost[i]) for i in range(self.neuron_num)]
-            # Sum along columns
-            d_cost_d_in = [sum(col) for col in zip(*d_cost_d_in)]
-
-        print(len(d_cost_d_weights[0]))
+        # print(len(d_cost_d_weights[0]))
         self.gradient = d_cost_d_weights
 
         return d_cost_d_in

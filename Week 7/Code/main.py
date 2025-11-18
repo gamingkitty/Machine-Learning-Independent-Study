@@ -45,8 +45,8 @@ def main():
     train_labels = np.eye(10)[train_labels]
     train_images = train_images.reshape(-1, 784)
 
-    training_data = train_images / 255.0
-    training_labels = train_labels
+    training_data = (train_images / 255.0)[:5000].tolist()
+    training_labels = train_labels.tolist()
 
     print("Training...")
     for i in range(epochs):
@@ -72,8 +72,11 @@ def main():
             for layer in layers:
                 layer.apply_gradient(learning_rate)
 
-            if j % 1 == 0:
-                print("epoch:", j, "loss:", total_loss / (j + 1))
+            # if j % 1 == 0:
+            #     print("epoch:", j, "loss:", total_loss / (j + 1))
+            if (j + 1) % 1000 == 0:
+                print(f"Finished {j + 1} samples of {len(training_data)} in epoch {i + 1}; average loss so far: {total_loss / (j + 1):.5f}")
+        print(f"Epoch {i + 1} finished with average loss of {total_loss / len(training_data):.5f}")
 
 
 

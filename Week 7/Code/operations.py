@@ -20,6 +20,20 @@ def divide(arr1, arr2):
 def dot(arr1, arr2):
     return sum(arr1[i] * arr2[i] for i in range(len(arr1)))
 
+def matrix_mult(arr1, arr2):
+    if not is_2d(arr1):
+        arr1 = [arr1]
+    if not is_2d(arr2):
+        arr2 = [arr2]
+    return [[dot(row, col) for col in transpose(arr2)] for row in arr1]
+
+def transpose(arr):
+    if not is_2d(arr):
+        arr = [arr]
+    return [[row[i] for row in arr] for i in range(len(arr[0]))]
+
+def is_2d(arr):
+    return isinstance(arr[0], list)
 
 def mult_scalar(arr, scalar):
     return [scalar * data for data in arr]
