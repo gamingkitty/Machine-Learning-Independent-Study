@@ -14,3 +14,4 @@ Projects:
 - Distance between two lines
 
 **Week 2**:
+Neural Networks
