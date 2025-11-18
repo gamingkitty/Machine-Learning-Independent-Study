@@ -27,9 +27,10 @@ class Layer:
         d_a_d_z = self.activation_derivative(z_data)
         if self.is_elementwise:
             # d_cost_d_weights = [ops.mult_scalar(input, d_cost_d_out[i] * d_a_d_z[i]) for i in range(len(d_cost_d_out))]
-            d_cost_d_weights = ops.matrix_mult(ops.transpose(ops.mult(d_a_d_z, d_cost_d_out)), inputs)
+            d_cost_d_z = ops.mult(d_a_d_z, d_cost_d_out)
+            d_cost_d_weights = ops.matrix_mult(ops.transpose(d_cost_d_z), inputs)
 
-            d_cost_d_in = ops.matrix_mult(ops.mult(d_a_d_z, d_cost_d_out), self.weights)[0]
+            d_cost_d_in = ops.matrix_mult(d_cost_d_z, self.weights)[0]
             # d_out_d_in = [ops.mult_scalar(self.weights[i], d_cost_d_out[i] * d_a_d_z[i]) for i in range(self.neuron_num)]
             # # Sum along columns
             # d_cost_d_in = [sum(col) for col in zip(*d_out_d_in)]

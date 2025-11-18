@@ -14,8 +14,9 @@ def relu_derivative(x):
 
 
 def softmax(x):
-    s = sum(x)
-    return [math.exp(e) / s for e in x]
+    exps = [math.exp(e) for e in x]
+    s = sum(exps)
+    return [e / s for e in exps]
 
 
 def softmax_derivative(z):
