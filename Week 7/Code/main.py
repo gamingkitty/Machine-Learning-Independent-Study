@@ -52,6 +52,7 @@ def main():
     print("Training...")
     for i in range(epochs):
         total_loss = 0
+        num_correct = 0
         for j in range(len(training_data)):
             out = training_data[j]
             label = training_labels[j]
@@ -62,6 +63,7 @@ def main():
                 z_data.append(z)
                 a_data.append(out)
             total_loss += loss(label, out)
+            num_correct += int(np.argmax(out) == np.argmax(label))
 
             dc_da = loss_derivative(label, out)
 
@@ -76,8 +78,8 @@ def main():
             # if j % 1 == 0:
             #     print("epoch:", j, "loss:", total_loss / (j + 1))
             if (j + 1) % 1000 == 0:
-                print(f"Finished {j + 1} samples of {len(training_data)} in epoch {i + 1}; average loss so far: {total_loss / (j + 1):.5f}")
-        print(f"Epoch {i + 1} finished with average loss of {total_loss / len(training_data):.5f}")
+                print(f"Finished {j + 1} samples of {len(training_data)} in epoch {i + 1}; average loss so far: {total_loss / (j + 1):.5f}; average accuracy so far: {num_correct / (j + 1):.5f}")
+        print(f"Epoch {i + 1} finished with average loss of {total_loss / len(training_data):.5f} and average accuracy of {num_correct / len(training_data):.5f}")
 
 
 
