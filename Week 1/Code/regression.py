@@ -160,7 +160,7 @@ class PointEditor:
             xs = np.linspace(xmin, xmax, 200)
             ys = np.zeros_like(xs, dtype=float)
             for i, f in enumerate(functions):
-                ys += coeffs[i] * f(xs)
+                ys += coeffs[i] * np.array(f(xs))
 
             self.fit_line.set_data(xs, ys)
 
@@ -302,8 +302,8 @@ def sin(x_data):
     return [math.sin(x) for x in x_data]
 
 
-functions = [linear, sin, cube, cbrt, intercept]
-function_names = ["x", "sin", "x^3", "x^(1/3)", ""]
+functions = [sqr, linear, intercept]
+function_names = ["x^2", "x", ""]
 
 
 if __name__ == "__main__":

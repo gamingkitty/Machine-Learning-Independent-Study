@@ -1,3 +1,4 @@
+import math
 import random
 import operations as ops
 
@@ -6,7 +7,7 @@ class Layer:
     def __init__(self, input_num, neuron_num, activation_function, activation_derivative, is_elementwise):
         self.input_num = input_num
         self.neuron_num = neuron_num
-        self.weights = [[random.random() - 0.5 for _ in range(input_num)] for _ in range(neuron_num)]
+        self.weights = [[(random.random() - 0.5) * math.sqrt(2 / input_num) for _ in range(input_num)] for _ in range(neuron_num)]
         self.activation_function = activation_function
         self.activation_derivative = activation_derivative
         self.is_elementwise = is_elementwise
