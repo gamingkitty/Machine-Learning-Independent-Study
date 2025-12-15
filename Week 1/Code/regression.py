@@ -114,10 +114,10 @@ class PointEditor:
         self.drag_anchor = None
 
         # events
-        self.cid_press  = self.fig.canvas.mpl_connect('button_press_event', self.on_press)
+        self.cid_press = self.fig.canvas.mpl_connect('button_press_event', self.on_press)
         self.cid_motion = self.fig.canvas.mpl_connect('motion_notify_event', self.on_motion)
-        self.cid_release= self.fig.canvas.mpl_connect('button_release_event', self.on_release)
-        self.cid_key    = self.fig.canvas.mpl_connect('key_press_event', self.on_key)
+        self.cid_release = self.fig.canvas.mpl_connect('button_release_event', self.on_release)
+        self.cid_key = self.fig.canvas.mpl_connect('key_press_event', self.on_key)
 
         # initial fit
         self.update_fit()
@@ -156,6 +156,7 @@ class PointEditor:
             if xmin == xmax:
                 xmin -= 1.0
                 xmax += 1.0
+            xmin = 0
             xs = np.linspace(xmin, xmax, 200)
             ys = np.zeros_like(xs, dtype=float)
             for i, f in enumerate(functions):
@@ -315,6 +316,9 @@ if __name__ == "__main__":
     y0 = [0.17, 0.34, 0.52, 0.70, 0.86]
 
     editor = PointEditor(ax, x0, y0)
+
+    editor.set_titles(title="Cu2+ Standard Curve: Concentration vs Absorbance", xlabel="Concentration (M)", ylabel="Absorbance")
+    plt.savefig("Standard Curve")
     plt.show()
 
     print()
